@@ -1,0 +1,18 @@
+---
+title: "412_housing"
+author: 'David Sun, Yuxiu Zheng, Harrison DiStefano '
+date: "11/26/2021"
+output:
+  pdf_document: default
+  html_document: default
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+
+```{r}
+read.csv('train.csv')
+```
+
