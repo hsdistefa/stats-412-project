@@ -30,17 +30,20 @@ summary(df1)
 # EDA 
 ```{r}
 df_corr<-cor(df1)
+df_corr
 corrplot(df_corr, method = "circle")
 ```
+
+Price
 ```{r}
 qplot(df1$Price,xlab = 'Price') # price
 ```
 
 
 
+Avg Area Income
 ```{r}
 qplot(df1$Avg..Area.Income,xlab = 'Avg Area Income',bins = 60)
-
 ```
 
 
