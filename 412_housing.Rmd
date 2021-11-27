@@ -1,18 +1,16 @@
 ---
-title: "412_housing"
-author: 'David Sun, Yuxiu Zheng, Harrison DiStefano '
+title: "412_Housing"
+author: "David Sun, Harrison DiStefano, Yuxiu Zheng"
 date: "11/26/2021"
-output:
-  pdf_document: default
-  html_document: default
+output: pdf_document
 ---
 
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
 ```
 
-
 ```{r}
-read.csv('train.csv')
+df <- read.csv('USA_Housing.csv')
+head(df,5)
 ```
 
