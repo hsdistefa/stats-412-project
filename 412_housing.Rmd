@@ -1,0 +1,54 @@
+---
+title: "412_Housing"
+author: "David Sun, Harrison DiStefano, Yuxiu Zheng"
+date: "11/26/2021"
+output: pdf_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(corrplot)
+library(ggplot2)
+```
+
+#Examine Basic Data Frame
+```{r}
+df <- read.csv('USA_Housing.csv')
+dim(df)         # 5000 X 7
+df$state <- sub(".*\\b([A-Z]{2}) \\d{5}.*", "\\1", df[,7])  # get the state from address
+head(df,5)
+df[is.na(df)]  # no NA's
+df1<-df[,1:6] # remove address column
+```
+
+In our original data, we have no NA's, 5000 records with 7 variables. We extract 
+
+```{r}
+summary(df1)
+```
+
+# EDA 
+```{r}
+df_corr<-cor(df1)
+df_corr
+corrplot(df_corr, method = "circle")
+```
+
+Price
+```{r}
+qplot(df1$Price,xlab = 'Price') # price
+```
+
+
+
+Avg Area Income
+```{r}
+qplot(df1$Avg..Area.Income,xlab = 'Avg Area Income',bins = 60)
+```
+
+
+
+
+
+
+
