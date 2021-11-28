@@ -1,0 +1,54 @@
+---
+title: "412 Project EDA"
+author: Harrison DiStefano
+output: html_notebook
+---
+
+
+
+```{r}
+# Load dataset
+
+df <- read.csv("USA_Housing.csv")
+names(df) <- c("AvgIncome", "AvgHouseAge", "AvgNumRooms", "AvgNumBedrooms", "AreaPopulation", "Price", "Address")
+
+
+df
+```
+
+```{r}
+library(corrplot)
+
+df_corr<-cor(df[, c(1:5)])
+df_corr
+corrplot(df_corr, method = "circle")
+```
+
+```{r collinearity}
+# VIF
+library(car)
+vif(lm_housing)
+
+# eigenvalue method
+numeric_features <- df[, c(1:5)]
+
+X <- as.matrix(numeric_features)
+XtX <- t(X) %*% X
+
+eigen(XtX)
+```
+
+```{r lm}
+# Linear Model
+lm_housing <- lm(Price ~ AvgIncome + AvgHouseAge + AvgNumRooms + AvgNumBedrooms + AreaPopulation, data=df)
+plot(lm_housing)
+summary(lm_housing)
+```
+
+Since all features except average number of bedrooms are significant and it is correlated with the average number of rooms, let's remove that feature from the model.
+
+```{r lm2}
+lm_housing2 <- lm(Price ~ AvgIncome + AvgHouseAge + AvgNumRooms + AreaPopulation, data=df)
+plot(lm_housing2)
+summary(lm_housing2)
+```
