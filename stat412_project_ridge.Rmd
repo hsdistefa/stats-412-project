@@ -1,0 +1,35 @@
+---
+title: "Stat412 Group Project"
+author: "Yuxiu Zheng"
+date: "11/26/2021"
+output: pdf_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(dplyr)
+library(glmnet)
+```
+
+```{r}
+df <- read.csv("USA_Housing.csv")
+names(df) <- c("AvgIncome", "AvgHouseAge", "AvgNumRooms", "AvgNumBedrooms", "AreaPopulation", "Price", "Address")
+head(df)
+numeric_features <- as.matrix(df[, c(1:5)])
+```
+```{r}
+lambdas_to_try <- seq(0, 1, by = 0.001)
+ridge_housing_cv <- cv.glmnet(numeric_features, df$Price, lambda = lambdas_to_try, standardize = TRUE, nfolds = 10)
+ridge_housing_cv$lambda.min
+ridge_housing <- glmnet(numeric_features, df$Price, alpha = 0, lambda = ridge_housing_cv$lambda.min, standardize = TRUE)
+
+adj_R2 <- function(data, resids, n, p){
+  TSS = sum((data - mean(data))^2)
+  RSS = sum(resids^2)
+  adj_R2 = 1 - (RSS/(n - p))/(TSS/(n - 1))
+  return(cat("The adjusted R^2 is:", adj_R2, "\n"))
+}
+
+adj_R2(df$Price, df$Price - predict(ridge_housing, newx = numeric_features), nrow(df), ncol(df)-1)
+```
+The adjusted R^2 is $0.9179417$, which is close to 1.
