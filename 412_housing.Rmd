@@ -9,11 +9,16 @@ output: pdf_document
 knitr::opts_chunk$set(echo = TRUE)
 library(corrplot)
 library(ggplot2)
+library(dplyr)
+library(glmnet)
+library(car)
 ```
 
 #Examine Basic Data Frame
 ```{r}
 df <- read.csv('USA_Housing.csv')
+names(df) <- c("AvgIncome", "AvgHouseAge", "AvgNumRooms", "AvgNumBedrooms", "AreaPopulation", "Price", "Address")
+
 dim(df)         # 5000 X 7
 df$state <- sub(".*\\b([A-Z]{2}) \\d{5}.*", "\\1", df[,7])  # get the state from address
 head(df,5)
@@ -46,8 +51,61 @@ Avg Area Income
 qplot(df1$Avg..Area.Income,xlab = 'Avg Area Income',bins = 60)
 ```
 
+##Linear Regression (Harrison)
+
+```{r collinearity}
+# eigenvalue method
+numeric_feature <- df[, c(1:5)]
+
+X <- as.matrix(numeric_feature)
+XtX <- t(X) %*% X
+
+eigen(XtX)
+```
 
 
+
+```{r lm}
+# Linear Model
+lm_housing <- lm(Price ~ AvgIncome + AvgHouseAge + AvgNumRooms + AvgNumBedrooms + AreaPopulation, data=df)
+plot(lm_housing)
+summary(lm_housing)
+
+# VIF
+vif(lm_housing)
+```
+
+Since all features except average number of bedrooms are significant and it is correlated with the average number of rooms, let's remove that feature from the model.
+
+```{r lm2}
+lm_housing2 <- lm(Price ~ AvgIncome + AvgHouseAge + AvgNumRooms + AreaPopulation, data=df)
+plot(lm_housing2)
+summary(lm_housing2)
+
+# VIF
+vif(lm_housing2)
+```
+
+##Ridge (Yuxiu)
+```{r}
+numeric_features <- as.matrix(df[, c(1:5)])
+
+lambdas_to_try <- seq(0, 1, by = 0.001)
+ridge_housing_cv <- cv.glmnet(numeric_features, df$Price, lambda = lambdas_to_try, standardize = TRUE, nfolds = 10)
+ridge_housing_cv$lambda.min
+ridge_housing <- glmnet(numeric_features, df$Price, alpha = 0, lambda = ridge_housing_cv$lambda.min, standardize = TRUE)
+
+adj_R2 <- function(data, resids, n, p){
+  TSS = sum((data - mean(data))^2)
+  RSS = sum(resids^2)
+  adj_R2 = 1 - (RSS/(n - p))/(TSS/(n - 1))
+  return(cat("The adjusted R^2 is:", adj_R2, "\n"))
+}
+
+adj_R2(df$Price, df$Price - predict(ridge_housing, newx = numeric_features), nrow(df), ncol(df)-1)
+```
+
+The adjusted R^2 is $0.9179417$, which is close to 1.
 
 
 
