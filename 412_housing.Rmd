@@ -41,15 +41,35 @@ corrplot(df_corr, method = "circle")
 
 Price
 ```{r}
-qplot(df1$Price,xlab = 'Price') # price
+qplot(df1$Price,xlab = 'Price',col ='red') # price
 ```
 
 
 
 Avg Area Income
 ```{r}
-qplot(df1$Avg..Area.Income,xlab = 'Avg Area Income',bins = 60)
+qplot(df1$AvgIncome,xlab = 'Avg Area Income',bins = 30,col ='red')
 ```
+Avgerage House Age
+```{r}
+qplot(df1$AvgHouseAge,xlab = 'Avg House Age',bins = 20,col ='red')
+```
+Avgerage Number of Rooms
+```{r}
+qplot(df1$AvgNumRooms,xlab = 'Avg Num Rooms',bins = 20,col ='red')
+```
+
+AvgNumBedrooms
+```{r}
+qplot(df1$AvgNumBedrooms,xlab = 'Avg Num Bedrooms',bins = 10,col ='red')
+```
+
+AreaPopulation
+```{r}
+qplot(df1$AreaPopulation,xlab = 'Area Population',bins = 20,col ='red')
+```
+
+
 
 ##Linear Regression (Harrison)
 
