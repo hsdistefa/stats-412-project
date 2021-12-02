@@ -118,20 +118,25 @@ We see AvgNumRooms and AvgNumBedrooms are highly corrected, and by intuition, mo
 ###Price
 
 ```{r}
-qplot(df1$Price,xlab = 'Price',main = 'Price Hist',col ='red',bins = 30) # price
+qplot(df3$Price,xlab = 'Price',main = 'Price Hist',col ='red',bins = 30) # price
 ```
 
 Price 1m -1.5m
 
 ###Avg Area Income
 ```{r}
-qplot(df3$AvgIncome,xlab = 'Avg Area Income',bins = 20,col ='red')
+qplot(x=df3$AvgIncome,xlab = 'Avg Area Income',bins = 20,col ='red')
+plot(x=df3$AvgIncome,y=df3$Price,xlab = 'Avg Area Income',ylab='Price',main = 'Price v Avg Area Income',col ='red')
+abline(lm(Price~AvgIncome,data = df3),col= "Blue")
 ```
 60k-80k
 
 ###Average House Age
 ```{r}
 qplot(df3$AvgHouseAge,xlab = 'Avg House Age',main ='Avg House Age Hist',bins = 9,col ='red')
+
+plot(x=df3$AvgHouseAge,y=df3$Price,xlab = 'Avg House Age',ylab='Price',main = 'Price v Avg House Age',col ='purple')
+abline(lm(Price~AvgHouseAge,data = df3),col= "Blue")
 ```
 5-7 years old
 
@@ -139,17 +144,25 @@ qplot(df3$AvgHouseAge,xlab = 'Avg House Age',main ='Avg House Age Hist',bins = 9
 
 ```{r}
 qplot(df1$AvgNumRooms,xlab = 'Avg Num Rooms', main ='Avg Num Rooms Hist',bins = 10,col ='red')
+
+plot(x=df3$AvgNumRooms,y=df3$Price,xlab = 'Avg Num Rooms',ylab='Price',main = 'Price v Avg Num Rooms',col ='Black')
+abline(lm(Price~AvgNumRooms,data = df3),col= "Blue")
 ```
 
 ###Average Number of Bedrooms
 ```{r}
 qplot(df1$AvgNumBedrooms,xlab = 'Avg Num Bedrooms',main = 'Avg Num Bedrooms Hist',bins = 7,col ='red')
+plot(x=df3$AvgNumBedrooms,y=df3$Price,xlab = 'Avg Num Bedrooms',ylab='Price',main = 'Price v Avg Num Bedrooms',col ='green')
+abline(lm(Price~AvgNumBedrooms,data = df3),col= "Blue")
 ```
 2-5
 
 Area Population
 ```{r}
 qplot(df1$AreaPopulation,xlab = 'Area Population',bins = 20,col ='red')
+
+plot(x=df3$AreaPopulation,y=df3$Price,xlab = 'Area Population',ylab='Price',main = 'Price v Area Population',col ='red')
+abline(lm(Price~AreaPopulation,data = df3),col= "Blue")
 ```
 30k-45k
 
