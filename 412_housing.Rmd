@@ -9,11 +9,40 @@ output: pdf_document
 knitr::opts_chunk$set(echo = TRUE)
 library(corrplot)
 library(ggplot2)
-#library(plyr)
 library(dplyr)
 library(glmnet)
 library(car)
-library(gt)
+library(MASS)
+
+# rmse function 
+rmse <- function(y_hat, y){round(sqrt(mean((y_hat - y)^2)),3)}
+
+# rmse rsquare rss function 
+rmse_r2_rss <- function(y, predict, df) {
+  RSS <- sum((predict - y)^2)
+  TSS <- sum((y - mean(y))^2)
+  #R_square <- 1 - RSS / SST
+  RMSE = sqrt(RSS/nrow(df))
+  n=nrow(df)
+  p=ncol(df)-1
+  R_square = 1 - (RSS/(n - p))/(TSS/(n - 1)) #adjusted R 2
+  # Model performance metrics
+data.frame(
+  RMSE = round(RMSE,5),
+  Rsquare = round(R_square,5)
+)
+}
+
+aic_bic <- function(fit){
+tLL <- fit$nulldev - deviance(fit)
+k <- fit$df
+n <- fit$nobs
+AICc <- -tLL+2*k+2*k*(k+1)/(n-k-1)
+
+BIC<-log(n)*k - tLL
+
+data.frame(AICc,BIC,fit$lambda)
+}
 
 ```
 
@@ -75,7 +104,8 @@ For the rest of the variables, even they have outliers bases on IQR method, but 
 
 
 
-# EDA 
+#EDA 
+###Correlation
 ```{r}
 df_corr<-cor(df1)
 df_corr
@@ -124,6 +154,26 @@ qplot(df1$AreaPopulation,xlab = 'Area Population',bins = 20,col ='red')
 30k-45k
 
 
+#Models
+##Train/Test Seperation
+```{r}
+set.seed(1)
+
+dt = sort(sample(nrow(df3), nrow(df3)*.7))
+
+#train
+df_tr <- df3[dt,-7] #remove state
+x_tr <- data.matrix(df_tr[,c(-6,-7)])
+y_tr <-df_tr[,6]
+
+#test
+df_ts <-  df3[-dt,-7]
+x_ts <-data.matrix(df_ts[,c(-6,-7)])
+y_ts <-df_ts[,6]
+
+```
+
+
 ##Linear Regression (Harrison)
 
 ```{r collinearity}
@@ -141,33 +191,53 @@ eigen_decomp$values
 
 ```{r lm}
 # Linear Model
-lm_housing <- lm(Price ~ AvgIncome + AvgHouseAge + AvgNumRooms + AvgNumBedrooms + AreaPopulation, data=df3)
+lm_housing <- lm(Price ~ AvgIncome + AvgHouseAge + AvgNumRooms + AvgNumBedrooms + AreaPopulation, data=df_tr)
 plot(lm_housing)
 summary(lm_housing)
 
 # VIF
-vif(lm_housing)
+car::vif(lm_housing)
+
+#train and test
+predictions<- predict(lm_housing, newx = x_tr)
+rmse_r2_rss(y_tr,predictions,x_tr)
+
+predictions1<- predict(lm_housing, newx = x_ts)
+rmse_r2_rss(y_ts,predictions1,x_ts)
 ```
 
 Since all features except average number of bedrooms are significant and it is correlated with the average number of rooms, let's remove that feature from the model.
 
 ```{r lm2}
-lm_housing2 <- lm(Price ~ AvgIncome + AvgHouseAge + AvgNumRooms + AreaPopulation, data=df)
+lm_housing2 <- lm(Price ~ AvgIncome + AvgHouseAge + AvgNumRooms + AreaPopulation, data=df_tr)
 plot(lm_housing2)
 summary(lm_housing2)
 
 # VIF
-vif(lm_housing2)
+car::vif(lm_housing2)
+
+#train and test
+df_tr1<-df_tr[,-4]
+df_ts1<-df_ts[,-4]
+
+
+
+rmse_r2_rss(df_tr1$Price,predict(lm_housing2,df_tr1),df_tr1)
+rmse_r2_rss(df_ts1$Price,predict(lm_housing2,df_ts1),df_ts1)
+
+
+
 ```
 
 ##Ridge (Yuxiu)
 ```{r}
-numeric_features <- as.matrix(df3[, c(1:5)])
+set.seed(1)
+numeric_features <- as.matrix(df_tr[, c(1:5)])
 
-lambdas_to_try <- seq(0, 1, by = 0.001)
-ridge_housing_cv <- cv.glmnet(numeric_features, df3$Price, lambda = lambdas_to_try, standardize = TRUE, nfolds = 10)
-ridge_housing_cv$lambda.min
-ridge_housing <- glmnet(numeric_features, df3$Price, alpha = 0, lambda = ridge_housing_cv$lambda.min, standardize = TRUE)
+lambdas_to_try <- seq(0, 2, by = 0.001)
+ridge_housing_cv <- cv.glmnet(x_tr, y_tr, lambda = lambdas_to_try, standardize = TRUE, nfolds = 10)
+min_lambda_ridcv <- ridge_housing_cv$lambda.min
+ridge_housing <- glmnet(x_tr, y_tr, alpha = 0, lambda = ridge_housing_cv$lambda.min, standardize = TRUE)
 
 adj_R2 <- function(data, resids, n, p){
   TSS = sum((data - mean(data))^2)
@@ -176,11 +246,35 @@ adj_R2 <- function(data, resids, n, p){
   return(cat("The adjusted R^2 is:", adj_R2, "\n"))
 }
 
-adj_R2(df3$Price, df3$Price - predict(ridge_housing, newx = numeric_features), nrow(df3), ncol(df3)-1)
+adj_R2(df_tr$Price, df_tr$Price - predict(ridge_housing, newx = numeric_features), nrow(df_tr), ncol(df_tr)-1)
+
+predictions<- predict(ridge_housing, s = min_lambda_ridcv, newx = x_tr)
+rmse_r2_rss(y_tr,predictions,x_tr)
+
+predictions<- predict(ridge_housing, s = min_lambda_ridcv, newx = x_ts)
+rmse_r2_rss(y_ts,predictions,x_ts)
 ```
 
 The adjusted R^2 is about $0.913$, which is close to 1.
 
 
+##Lasso (David)
+```{r, warning = FALSE}
+set.seed(2)
+#CV
+lambdas_to_try <- seq(0, 1, by = 0.001)
+lsmod_cv <- cv.glmnet(x_tr, y_tr, alpha = 1, lambda = lambdas_to_try, 
+                      standardize = TRUE, nfolds = 10)
+min_lambda_lscv <- lsmod_cv $lambda.min
+min_lambda_lscv
 
+lsmod_cv $lambda.1se
+
+predictions<- predict(lsmod_cv, s = min_lambda_lscv, newx = x_tr)
+rmse_r2_rss(y_tr,predictions,x_tr)
+
+predictions<- predict(lsmod_cv, s = min_lambda_lscv, newx = x_ts)
+rmse_r2_rss(y_ts,predictions,x_ts)
+
+```
 
