@@ -90,11 +90,13 @@ Since Price is our response variable, we start with it first by using 1.5 * IQR 
 
 We removed 35 outliers.
 
+
+
 ### Average Income 
 ```{r}
 boxplot(df2$AvgIncome)
 iqr_ainc<-IQR(df2$AvgIncome)
-df3 = subset(df2, AvgIncome>=quantile(df2$AvgIncome, 0.25)-1.5*iqr_ainc & AvgIncome<=quantile(df2$AvgIncome, 0.75)+1.5*iqr_ainc )
+df3 <- subset(df2, AvgIncome>=quantile(df2$AvgIncome, 0.25)-1.5*iqr_ainc & AvgIncome<=quantile(df2$AvgIncome, 0.75)+1.5*iqr_ainc )
 summary(df3)
 boxplot(df3$AvgIncome)
 ```
@@ -102,12 +104,17 @@ We removed 29 more outliers on Average Income.
 
 For the rest of the variables, even they have outliers bases on IQR method, but they do not affect our models much. 
 
-
+subset
+```{r}
+df4<-df3
+df3 <- subset(df4, state == "CA" | state == "TX"|state == "NY"| state == "FL"| state == "IL" )
+tail(df3,10)
+```
 
 #EDA 
 ###Correlation
 ```{r}
-df_corr<-cor(df1[, c(1:5)])
+df_corr<-cor(df3[, c(1:5)])
 df_corr
 corrplot(df_corr, method = "circle")
 ```
@@ -215,7 +222,7 @@ rmse_r2_rss(df_tr$Price,predict(lm_housing,df_tr),df_tr)
 rmse_r2_rss(df_ts$Price,predict(lm_housing,df_ts),df_ts)
 ```
 
-From AIC step function, avgnumbedrooms variable is removed. This is reasonable becasue by intuition, all features except average number of bedrooms are significant and it is correlated with the average number of rooms.
+From AIC step function, avgnumbedrooms variable is removed. This is reasonable because by intuition, all features except average number of bedrooms are significant and it is correlated with the average number of rooms.
 
 ```{r lm2}
 lm_housing2<-step(lm_housing,trace = FALSE)
