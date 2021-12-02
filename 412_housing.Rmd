@@ -111,12 +111,21 @@ subset
 #df4<-df3
 df4 <- subset(df3, state == "CA" | state == "TX"|state == "NY"| state == "FL"| state == "IL" )
 summary(df4)
+
+
+df5<-df4 %>% mutate(gdp_ratio =
+                     case_when(state == "CA" ~ 3.3, 
+                               state == "TX" ~ 2.0,
+                               state == "NY" ~ 1.9,
+                               state == "FL" ~ 1.2,
+                               state == "IL" ~ 0.94)
+)
 ```
 
 #EDA 
 ###Correlation
 ```{r}
-df_corr<-cor(df4[, c(1:6)])
+df_corr<-cor(df5[, -c(7)])
 df_corr
 #corrplot(df_corr, method = "circle")
 ggcorrplot(df_corr)
@@ -128,18 +137,18 @@ We see AvgNumRooms and AvgNumBedrooms are highly corrected, and by intuition, mo
 ###Price
 
 ```{r}
-qplot(df4$Price,xlab = 'Price',main = 'Price Hist',col ='red',bins = 30) # price
-quantile(df4$Price, 0.75)
+qplot(df5$Price,xlab = 'Price',main = 'Price Hist',col ='red',bins = 30) # price
+quantile(df5$Price, 0.75)
 ```
 
 Price 1m -1.5m
 
 ###Avg Area Income
 ```{r}
-qplot(x=df4$AvgIncome,xlab = 'Avg Area Income',main="Avg Area Income Hist",bins = 20,col ='red')
-plot(x=df4$AvgIncome,y=df4$Price,xlab = 'Avg Area Income',ylab='Price',main = 'Price v Avg Area Income',col ='red')
+qplot(x=df5$AvgIncome,xlab = 'Avg Area Income',main="Avg Area Income Hist",bins = 20,col ='red')
+plot(x=df5$AvgIncome,y=df5$Price,xlab = 'Avg Area Income',ylab='Price',main = 'Price v Avg Area Income',col ='red')
 abline(lm(Price~AvgIncome,data = df4),col= "Blue")
-quantile(df4$AvgIncome, 0.25)
+quantile(df5$AvgIncome, 0.25)
 ```
 60k-80k
 
@@ -190,16 +199,16 @@ abline(lm(Price~AreaPopulation,data = df4),col= "Blue")
 ```{r}
 set.seed(1)
 
-dt = sort(sample(nrow(df4), nrow(df4)*.7))
+dt = sort(sample(nrow(df5), nrow(df5)*.8))
 
 #train
-df_tr <- df4[dt,-7] #remove state
-x_tr <- data.matrix(df_tr[,c(-6,-7)])
+df_tr <- df5[dt,-7] #remove state
+x_tr <- data.matrix(df_tr[,c(-6)])
 y_tr <-df_tr[,6]
 
 #test
-df_ts <-  df4[-dt,-7]
-x_ts <-data.matrix(df_ts[,c(-6,-7)])
+df_ts <-  df5[-dt,-7]
+x_ts <-data.matrix(df_ts[,c(-6)])
 y_ts <-df_ts[,6]
 
 ```
@@ -221,7 +230,7 @@ eigen_decomp$values
 
 ```{r lm}
 # Linear Model
-lm_housing <- lm(Price ~ AvgIncome + AvgHouseAge + AvgNumRooms + AvgNumBedrooms + AreaPopulation, data=df_tr)
+lm_housing <- lm(Price ~ ., data=df_tr)
 plot(lm_housing)
 summary(lm_housing)
 
@@ -233,7 +242,7 @@ rmse_r2_rss(df_tr$Price,predict(lm_housing,df_tr),df_tr)
 rmse_r2_rss(df_ts$Price,predict(lm_housing,df_ts),df_ts)
 ```
 
-From AIC step function, avgnumbedrooms variable is removed. This is reasonable because by intuition, all features except average number of bedrooms are significant and it is correlated with the average number of rooms.
+From AIC step function, avgnumbedrooms and GDP_ratio variables are removed. For avgnumbedrooms, it is reasonable because by intuition, all features except average number of bedrooms are significant and it is correlated with the average number of rooms.
 
 ```{r lm2}
 lm_housing2<-step(lm_housing,trace = FALSE)
@@ -247,8 +256,8 @@ summary(lm_housing2)
 car::vif(lm_housing2)
 
 #train and test
-df_tr1<-df_tr[,-4]
-df_ts1<-df_ts[,-4]
+df_tr1<-df_tr[,-c(4,7)]
+df_ts1<-df_ts[,-c(4,7)]
 
 
 rmse_r2_rss(df_tr1$Price,predict(lm_housing2,df_tr1),df_tr1)
@@ -274,7 +283,7 @@ rmse_r2_rss(df_ts1$Price,predict(model_cv,df_ts1),df_ts1)
 ##Ridge (Yuxiu)
 ```{r}
 set.seed(1)
-numeric_features <- as.matrix(df_tr[, c(1:5)])
+numeric_features <- as.matrix(df_tr[, -c(6)])
 
 lambdas_to_try <- seq(0, 2, by = 0.001)
 ridge_housing_cv <- cv.glmnet(x_tr, y_tr, lambda = lambdas_to_try, standardize = TRUE, nfolds = 10)
@@ -288,7 +297,7 @@ adj_R2 <- function(data, resids, n, p){
   return(cat("The adjusted R^2 is:", adj_R2, "\n"))
 }
 
-adj_R2(df_tr$Price, df_tr$Price - predict(ridge_housing, newx = numeric_features), nrow(df_tr), ncol(df_tr)-1)
+#adj_R2(df_tr$Price, df_tr$Price - predict(ridge_housing, newx = numeric_features), nrow(df_tr), ncol(df_tr)-1)
 
 predictions<- predict(ridge_housing, s = min_lambda_ridcv, newx = x_tr)
 rmse_r2_rss(y_tr,predictions,x_tr)
@@ -297,7 +306,7 @@ predictions<- predict(ridge_housing, s = min_lambda_ridcv, newx = x_ts)
 rmse_r2_rss(y_ts,predictions,x_ts)
 ```
 
-The adjusted R^2 is about $0.917$, which is close to 1.
+The adjusted R^2 is about $0.9147$, which is close to 1.
 
 
 ##Lasso (David)
@@ -367,24 +376,38 @@ rmse_r2_rss(y_tr, predictions, x_tr)
 predictions<- predict(pcrmod_cv2, df_ts, ncomp = min1)
 rmse_r2_rss(y_ts, predictions, x_ts)
 
+#######################################################
+pcrmod_cv3 <- pcr(Price ~ ., data=df_tr,validation = "CV", scale = TRUE, ncomp =5,segments = 10)
+summary(pcrmod_cv)
+
+
+pcrmse_2_cv3 <- RMSEP(pcrmod_cv3, estimate="CV")
+min1<-which.min(pcrmse_2_cv3$val)-1 # -1 for intercept
+min1
+ 
+predictions<- predict(pcrmod_cv3, df_tr, ncomp = min1)
+rmse_r2_rss(y_tr, predictions, x_tr)
+
+predictions<- predict(pcrmod_cv3, df_ts, ncomp = min1)
+rmse_r2_rss(y_ts, predictions, x_ts)
 
 ```
 
 
 ## Polynomial Regression (David )
 ```{r}
-poly_model1 <- lm(df_tr1$Price~polym(AvgIncome , AvgHouseAge , AvgNumRooms , AreaPopulation,degree=4,raw=TRUE),data=df_tr1)
+poly_model1 <- lm(df_tr$Price~polym(AvgIncome , AvgHouseAge , AvgNumRooms , AreaPopulation,gdp_ratio,degree=4,raw=TRUE),data=df_tr)
 
 rmse_r2_rss(df_tr$Price,predict(poly_model1,df_tr),df_tr)
 rmse_r2_rss(df_ts$Price,predict(poly_model1,df_ts),df_ts)
 
 #############################################################
-poly_model2 <- lm(df_tr1$Price~polym(AvgIncome , AvgHouseAge , AvgNumRooms , AreaPopulation,degree=3,raw=TRUE),data=df_tr1)
+poly_model2 <- lm(df_tr$Price~polym(AvgIncome , AvgHouseAge , AvgNumRooms , AreaPopulation,gdp_ratio,degree=3,raw=TRUE),data=df_tr)
 
 rmse_r2_rss(df_tr$Price,predict(poly_model2,df_tr),df_tr)
 rmse_r2_rss(df_ts$Price,predict(poly_model2,df_ts),df_ts)
 #############################################################
-poly_model3 <- lm(df_tr1$Price~polym(AvgIncome , AvgHouseAge , AvgNumRooms , AreaPopulation,degree=2,raw=TRUE),data=df_tr1)
+poly_model3 <- lm(df_tr$Price~polym(AvgIncome , AvgHouseAge , AvgNumRooms , AreaPopulation,gdp_ratio,degree=2,raw=TRUE),data=df_tr)
 
 rmse_r2_rss(df_tr$Price,predict(poly_model3,df_tr),df_tr)
 rmse_r2_rss(df_ts$Price,predict(poly_model3,df_ts),df_ts)
