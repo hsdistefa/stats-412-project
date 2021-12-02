@@ -107,7 +107,7 @@ For the rest of the variables, even they have outliers bases on IQR method, but 
 #EDA 
 ###Correlation
 ```{r}
-df_corr<-cor(df1)
+df_corr<-cor(df1[, c(1:5)])
 df_corr
 corrplot(df_corr, method = "circle")
 ```
