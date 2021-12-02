@@ -183,7 +183,8 @@ numeric_feature <- df3[, c(1:5)]
 X <- as.matrix(numeric_feature)
 XtX <- t(X) %*% X
 
-eigen(XtX)
+eigen_decomp = eigen(XtX)
+eigen_decomp$values
 ```
 
 
