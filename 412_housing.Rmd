@@ -188,7 +188,6 @@ eigen_decomp$values
 ```
 
 
-
 ```{r lm}
 # Linear Model
 lm_housing <- lm(Price ~ AvgIncome + AvgHouseAge + AvgNumRooms + AvgNumBedrooms + AreaPopulation, data=df_tr)
@@ -199,17 +198,17 @@ summary(lm_housing)
 car::vif(lm_housing)
 
 #train and test
-predictions<- predict(lm_housing, newx = x_tr)
-rmse_r2_rss(y_tr,predictions,x_tr)
-
-predictions1<- predict(lm_housing, newx = x_ts)
-rmse_r2_rss(y_ts,predictions1,x_ts)
+rmse_r2_rss(df_tr$Price,predict(lm_housing,df_tr),df_tr)
+rmse_r2_rss(df_ts$Price,predict(lm_housing,df_ts),df_ts)
 ```
 
-Since all features except average number of bedrooms are significant and it is correlated with the average number of rooms, let's remove that feature from the model.
+From AIC step function, avgnumbedrooms variable is removed. This is reasonable becasue by intuition, all features except average number of bedrooms are significant and it is correlated with the average number of rooms.
 
 ```{r lm2}
-lm_housing2 <- lm(Price ~ AvgIncome + AvgHouseAge + AvgNumRooms + AreaPopulation, data=df_tr)
+lm_housing2<-step(lm_housing,trace = FALSE)
+lm_housing2$coefficients
+
+#lm_housing2 <- lm(Price ~ AvgIncome + AvgHouseAge + AvgNumRooms + AreaPopulation, data=df_tr)
 plot(lm_housing2)
 summary(lm_housing2)
 
@@ -221,13 +220,11 @@ df_tr1<-df_tr[,-4]
 df_ts1<-df_ts[,-4]
 
 
-
 rmse_r2_rss(df_tr1$Price,predict(lm_housing2,df_tr1),df_tr1)
 rmse_r2_rss(df_ts1$Price,predict(lm_housing2,df_ts1),df_ts1)
 
-
-
 ```
+
 
 ##Ridge (Yuxiu)
 ```{r}
