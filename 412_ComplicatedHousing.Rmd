@@ -5,7 +5,7 @@ date: "12/2/2021"
 output: pdf_document
 ---
 
-```{r setup, include=FALSE}
+```{r setup,include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
 library(corrplot)
 library(ggplot2)
@@ -15,14 +15,186 @@ library(car)
 library(MASS)
 library(caret) 
 library(ggcorrplot)
+# rmse rsquare rss function 
+rmse_r2_rss <- function(y, predict, df) {
+  RSS <- sum((predict - y)^2)
+  TSS <- sum((y - mean(y))^2)
+  #R_square <- 1 - RSS / SST
+  RMSE = sqrt(RSS/nrow(df))
+  n=nrow(df)
+  p=ncol(df)-1
+  R_square = 1 - (RSS/(n - p))/(TSS/(n - 1)) #adjusted R 2
+  # Model performance metrics
+data.frame(
+  RMSE = round(RMSE,5),
+  Rsquare = round(R_square,5)
+)
+}
+```
+
+```{r functions , include=FALSE}
+corr_simple <- function(data=df,sig=0.5){
+  #convert data to numeric in order to run correlations
+  #convert to factor first to keep the integrity of the data - each value will become a number rather than turn into NA
+  df_cor <- data %>% mutate_if(is.character, as.factor)
+  df_cor <- df_cor %>% mutate_if(is.factor, as.numeric)
+  #run a correlation and drop the insignificant ones
+  corr <- cor(df_cor)
+  #prepare to drop duplicates and correlations of 1     
+  corr[lower.tri(corr,diag=TRUE)] <- NA 
+  #drop perfect correlations
+  corr[corr == 1] <- NA 
+  #turn into a 3-column table
+  corr <- as.data.frame(as.table(corr))
+  #remove the NA values from above 
+  corr <- na.omit(corr) 
+  #select significant values  
+  corr <- subset(corr, abs(Freq) > sig) 
+  #sort by highest correlation
+  corr <- corr[order(-abs(corr$Freq)),] 
+  #print table
+  print(corr)
+  #turn corr back into matrix in order to plot with corrplot
+  mtx_corr <- reshape2::acast(corr, Var1~Var2, value.var="Freq")
+  
+  #plot correlations visually
+  corrplot(mtx_corr, is.corr=FALSE, tl.col="black", na.label=" ",main = paste("Corr Plot Variables > ", sig))
+}
+
+rmse <- function(y_hat, y){round(sqrt(mean((y_hat - y)^2)),3)}
+
+
 ```
 
 ## R Markdown
 
 
 ```{r }
-df<- read.csv('train_edit.csv')
-dim(df) 
+df_raw<- read.csv('train_edit.csv')
+df_ts<-read.csv('test_edit.csv')
+dim(df_raw) 
+
+df<- df_raw[,-1] # remove ID column
 head(df,5)
+```
+
+```{r}
+#summary(df)
+sum(is.na(df))
+```
+```{r}
+#replace NA with median in Lot Front Age
+df$LotFrontage[is.na(df$LotFrontage)] <- median(df$LotFrontage, na.rm=TRUE)
+# remove Na's in MasVnrArea
+df1 <-na.omit(df)
+sum(is.na(df1))
+
+
+head(df1)
+
+```
+
+```{r}
+df_corr<-cor(df1)
+df_corr
+#corrplot(df_corr, method = "circle")
+#ggcorrplot(df_corr)
+
+corr_simple(df1) # anything greater than 0.50
+```
+
+```{r}
+
+df2 <- subset(df1, select = -c(GarageCars,HouseStyle, BedroomAbvGr,TotRmsAbvGrd,OverallQual, X2ndFlrSF,X1stFlrSF,BsmtFullBath, FullBath,BsmtFinSF1, BsmtFinSF2, BsmtUnfSF  ) )
+head(df2)
+
+```
+
+
+```{r}
+corr_simple(df2,.4)
+```
+
+Price<=550k set up
+```{r}
+df3 = subset(df2, SalePrice <= 550000 )
+boxplot(df3$SalePrice)
+```
+Central Air Clean
+```{r}
+df3$CentralAir[df3$CentralAir =="Y"] <- as.integer(1)
+df3$CentralAir[df3$CentralAir =="N"] <- as.integer(0)
+```
+
+#EDA
+```{r}
+corr_simple(df3,sig = 0.4)
+```
+
+Sales Price 130k - 210k
+```{r}
+qplot(df3$SalePrice,xlab = 'Sales Price',main = 'Sales Price Hist',col ='red',bins = 15) # price
+quantile(df3$SalePrice, 0.25)
+quantile(df3$SalePrice, 0.75)
+```
+
+
+#models
+
+##Train/Test Seperation
+
+```{r}
+set.seed(412)
+dt = sort(sample(nrow(df3), nrow(df3)*.8))  #80% as train, 20% as test
+
+#train
+df_tr <- df3[dt,] #remove state
+x_tr <- data.matrix(df_tr[,-c(29)])
+y_tr <-df_tr[,c(29)]
+
+#test
+df_ts <-  df3[-dt,]
+x_ts <-data.matrix(df_ts[,-c(29)])
+y_ts <-df_ts[,c(29)]
+
+```
+
+
+```{r lm}
+# Linear Model
+lm_housing <- lm(SalePrice ~ ., data=df_tr)
+plot(lm_housing)
+summary(lm_housing)
+
+# VIF
+car::vif(lm_housing)
+df
+rmse_r2_rss(df_tr$SalePrice,predict(lm_housing,df_tr),df_tr)
+
+rmse_r2_rss(df_ts$SalePrice,predict(lm_housing,df_ts),df_ts)
+```
+
+##Linear Regression (Harrison)
+```{r}
+set.seed(412)
+lm_housing2<-step(lm_housing,trace = FALSE)
+lm_housing2$coefficients
+
+plot(lm_housing2)
+summary(lm_housing2)
+
+# VIF
+car::vif(lm_housing2)
+
+#train and test
+
+df_tr1 <- subset(df_tr, select = c( MSSubClass, LotFrontage, LotArea,LandSlope , OverallCond,YearBuilt,YearRemodAdd,    MasVnrArea,TotalBsmtSF, CentralAir, GrLivArea, BsmtHalfBath, KitchenAbvGr, Fireplaces, GarageArea, WoodDeckSF,EnclosedPorch,ScreenPorch, PoolArea,MoSold,SalePrice ) )
+df_ts1 <- subset(df_ts, select = c( MSSubClass, LotFrontage,LotArea, LandSlope , OverallCond,YearBuilt,YearRemodAdd,    MasVnrArea,TotalBsmtSF, CentralAir, GrLivArea, BsmtHalfBath, KitchenAbvGr, Fireplaces, GarageArea, WoodDeckSF,EnclosedPorch,ScreenPorch, PoolArea,MoSold,SalePrice ) )
+
+
+rmse_r2_rss(df_tr1$SalePrice,predict(lm_housing2,df_tr1),df_tr1)
+rmse_r2_rss(df_ts1$SalePrice,predict(lm_housing2,df_ts1),df_ts1)
+
+
 ```
 

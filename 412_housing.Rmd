@@ -407,7 +407,7 @@ poly_model2 <- lm(df_tr$Price~polym(AvgIncome , AvgHouseAge , AvgNumRooms , Area
 rmse_r2_rss(df_tr$Price,predict(poly_model2,df_tr),df_tr)
 rmse_r2_rss(df_ts$Price,predict(poly_model2,df_ts),df_ts)
 #############################################################
-poly_model3 <- lm(df_tr$Price~polym(AvgIncome , AvgHouseAge , AvgNumRooms , AreaPopulation,gdp_ratio,degree=2,raw=TRUE),data=df_tr)
+poly_model3 <- lm(df_tr$Price~polym(AvgIncome , AvgHouseAge , AvgNumRooms , AreaPopulation,gdp_ratio,degree=2,raw=TRUE),data=df_tr1)
 
 rmse_r2_rss(df_tr$Price,predict(poly_model3,df_tr),df_tr)
 rmse_r2_rss(df_ts$Price,predict(poly_model3,df_ts),df_ts)
