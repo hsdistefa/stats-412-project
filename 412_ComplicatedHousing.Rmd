@@ -15,6 +15,7 @@ library(car)
 library(MASS)
 library(caret) 
 library(ggcorrplot)
+
 # rmse rsquare rss function 
 rmse_r2_rss <- function(y, predict, df) {
   RSS <- sum((predict - y)^2)
@@ -71,7 +72,6 @@ rmse <- function(y_hat, y){round(sqrt(mean((y_hat - y)^2)),3)}
 
 ```{r }
 df_raw<- read.csv('train_edit.csv')
-df_ts<-read.csv('test_edit.csv')
 dim(df_raw) 
 
 df<- df_raw[,-1] # remove ID column
@@ -96,7 +96,7 @@ head(df1)
 
 ```{r}
 df_corr<-cor(df1)
-df_corr
+
 #corrplot(df_corr, method = "circle")
 #ggcorrplot(df_corr)
 
@@ -197,4 +197,93 @@ rmse_r2_rss(df_ts1$SalePrice,predict(lm_housing2,df_ts1),df_ts1)
 
 
 ```
+###Ridge 
+```{r}
+set.seed(412)
+numeric_features <- as.matrix(df_tr[, -c(29)])
+
+lambdas_to_try <- seq(0, 2, by = 0.001)
+ridge_housing_cv <- cv.glmnet(x_tr, y_tr, lambda = lambdas_to_try, standardize = TRUE, nfolds = 10)
+min_lambda_ridcv <- ridge_housing_cv$lambda.min
+ridge_housing <- glmnet(x_tr, y_tr, alpha = 0, lambda = ridge_housing_cv$lambda.min, standardize = TRUE)
+
+
+predictions<- predict(ridge_housing, s = min_lambda_ridcv, newx = x_tr)
+rmse_r2_rss(y_tr,predictions,x_tr)
+
+predictions<- predict(ridge_housing, s = min_lambda_ridcv, newx = x_ts)
+rmse_r2_rss(y_ts,predictions,x_ts)
+plot(ridge_housing_cv$glmnet.fit,xvar = "lambda", label = T, main ="ridge_housing_cv$glmnet.fit")
+```
+##PCA
+##PCR (David)
+```{r, warning= FALSE}
+
+library(pls)
+set.seed(412)
+
+pcr_m <-prcomp(x_tr) 
+
+plot(pcr_m$sdev[1:10],type="l", ylab="SD of PC", xlab="PC number")
+
+pcrmod_cv <- pcr(SalePrice ~ MSSubClass+LotFrontage+LotArea+LotShape+LandSlope+OverallCond+YearBuilt+YearRemodAdd+MasVnrArea+TotalBsmtSF+CentralAir+LowQualFinSF+GrLivArea+BsmtHalfBath+HalfBath+KitchenAbvGr+Fireplaces+GarageArea+PavedDrive+WoodDeckSF+OpenPorchSF+EnclosedPorch+X3SsnPorch+ScreenPorch+PoolArea+MiscVal+MoSold+YrSold, data=df_tr,validation = "CV", scale = TRUE, ncomp =28,segments = 10)
+summary(pcrmod_cv)
+
+
+pcrmse_2_cv <- RMSEP(pcrmod_cv, estimate="CV")
+min1<-which.min(pcrmse_2_cv$val)-1 # -1 for intercept
+min1
+
+
+
+
+predictions<- predict(pcrmod_cv, df_tr, ncomp = min1)
+rmse_r2_rss(y_tr, predictions, x_tr)
+
+predictions<- predict(pcrmod_cv, df_ts, ncomp = min1)
+rmse_r2_rss(y_ts, predictions, x_ts)
+
+
+##########################################################################
+#AIC model
+pcrmod_cv2 <- pcr(SalePrice ~ MSSubClass+ LotFrontage+ LotArea+LandSlope + OverallCond+YearBuilt+YearRemodAdd+    MasVnrArea+TotalBsmtSF+ CentralAir+ GrLivArea+ BsmtHalfBath+ KitchenAbvGr+ Fireplaces+ GarageArea+ WoodDeckSF+EnclosedPorch+ScreenPorch+ PoolArea+MoSold, data=df_tr,validation = "CV", scale = TRUE, ncomp =20,segments = 10)
+summary(pcrmod_cv2)
+
+pcrmse_2_cv2 <- RMSEP(pcrmod_cv2, estimate="CV")
+min2<-which.min(pcrmse_2_cv2$val)-1 # -1 for intercept
+min2
+ 
+predictions<- predict(pcrmod_cv2, df_tr, ncomp = min2)
+rmse_r2_rss(y_tr, predictions, x_tr)
+
+predictions<- predict(pcrmod_cv2, df_ts, ncomp = min2)
+rmse_r2_rss(y_ts, predictions, x_ts)
+####
+library(qpcR)
+#round(PRESS(pcrmod_cv)$P.square,3) #.988
+#round(PRESS(pcrmod_cv2)$P.square,3) #.983
+
+```
+
+## Polynomial Regression (David )
+```{r}
+#poly 3
+poly_model2 <- lm(df_tr$SalePrice~polym(LotArea, YearBuilt,YearRemodAdd, MasVnrArea, GrLivArea,degree=3,raw=TRUE),data=df_tr)
+
+rmse_r2_rss(df_tr$SalePrice,predict(poly_model2,df_tr),df_tr)
+rmse_r2_rss(df_ts$SalePrice,predict(poly_model2,df_ts),df_ts)
+#############################################################
+#poly 2
+poly_model3 <- lm(df_tr$SalePrice~polym(LotArea, YearBuilt,YearRemodAdd, MasVnrArea, GrLivArea,degree=2,raw=TRUE),data=df_tr)
+
+rmse_r2_rss(df_tr$SalePrice,predict(poly_model3,df_tr),df_tr)
+rmse_r2_rss(df_ts$SalePrice,predict(poly_model3,df_ts),df_ts)
+
+
+
+```
+```{r}
+
+```
+
 
