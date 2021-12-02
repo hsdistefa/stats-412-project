@@ -1,0 +1,28 @@
+---
+title: "412_ComplicateHousing"
+author: "DavidSun"
+date: "12/2/2021"
+output: pdf_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(corrplot)
+library(ggplot2)
+library(dplyr)
+library(glmnet)
+library(car)
+library(MASS)
+library(caret) 
+library(ggcorrplot)
+```
+
+## R Markdown
+
+
+```{r }
+df<- read.csv('train_edit.csv')
+dim(df) 
+head(df,5)
+```
+
