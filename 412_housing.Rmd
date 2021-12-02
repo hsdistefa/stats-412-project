@@ -13,7 +13,7 @@ library(dplyr)
 library(glmnet)
 library(car)
 library(MASS)
-
+library(caret) 
 # rmse function 
 rmse <- function(y_hat, y){round(sqrt(mean((y_hat - y)^2)),3)}
 
@@ -223,6 +223,20 @@ df_ts1<-df_ts[,-4]
 rmse_r2_rss(df_tr1$Price,predict(lm_housing2,df_tr1),df_tr1)
 rmse_r2_rss(df_ts1$Price,predict(lm_housing2,df_ts1),df_ts1)
 
+
+# CV 
+set.seed(1)
+train.control <- trainControl(method = "repeatedcv", 
+                              number = 10, repeats = 3)
+# Train the model
+model_cv <- train(Price ~ AvgIncome + AvgHouseAge + AvgNumRooms + AreaPopulation, data=df_tr1, method="lm",
+                  trControl = train.control)
+print(model_cv)
+rmse_r2_rss(df_tr1$Price,predict(model_cv,df_tr1),df_tr1)
+rmse_r2_rss(df_ts1$Price,predict(model_cv,df_ts1),df_ts1)
+# Summarize the results
+
+
 ```
 
 
@@ -273,5 +287,28 @@ rmse_r2_rss(y_tr,predictions,x_tr)
 predictions<- predict(lsmod_cv, s = min_lambda_lscv, newx = x_ts)
 rmse_r2_rss(y_ts,predictions,x_ts)
 
+```
+
+
+##PCR
+
+
+## Polynomial Regression
+```{r}
+poly_model <- lm(df_tr1$Price~polym(AvgIncome , AvgHouseAge , AvgNumRooms , AreaPopulation,degree=3,raw=TRUE),data=df_tr1)
+
+rmse_r2_rss(df_tr$Price,predict(poly_model,df_tr),df_tr)
+rmse_r2_rss(df_ts$Price,predict(poly_model,df_ts),df_ts)
+
+
+# CV 
+set.seed(1)
+train.control <- trainControl(method = "repeatedcv", 
+                              number = 10, repeats = 3)
+# Train the model
+model_cv <- train(df_tr1$Price~polym(AvgIncome , AvgHouseAge , AvgNumRooms , AreaPopulation,degree=3,raw=TRUE), data=df3, method="lm", trControl = train.control)
+
+# Summarize the results
+print(model_cv)
 ```
 
