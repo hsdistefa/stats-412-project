@@ -289,18 +289,53 @@ rmse_r2_rss(y_ts,predictions,x_ts)
 
 ```
 
+#train
+df_tr <- df3[dt,-7] #remove state
+x_tr <- data.matrix(df_tr[,c(-6,-7)])
+y_tr <-df_tr[,6]
 
-##PCR
+#test
+df_ts <-  df3[-dt,-7]
+x_ts <-data.matrix(df_ts[,c(-6,-7)])
+y_ts <-df_ts[,6]
+
+##PCR (David )
+```{r}
+
+library(pls)
+set.seed(1)
+
+pcr_m <-prcomp(x_tr) # remove response siri
+
+plot(pcr_m$sdev[1:10],type="l", ylab="SD of PC", xlab="PC number")
+
+pcrmod_cv <- pcr(Price ~ AvgIncome + AvgHouseAge + AvgNumRooms + AreaPopulation, data=df_tr,validation = "CV", scale = TRUE, ncomp =4,segments = 10)
+summary(pcrmod_cv)
 
 
-## Polynomial Regression
+pcrmse_2_cv <- RMSEP(pcrmod_cv, estimate="CV")
+min1<-which.min(pcrmse_2_cv$val)-1 # -1 for intercept
+min1
+ 
+predictions<- predict(pcrmod_cv, df_tr, ncomp = min1)
+rmse_r2_rss(y_tr, predictions, x_tr)
+
+predictions<- predict(pcrmod_cv, df_ts, ncomp = min1)
+rmse_r2_rss(y_ts, predictions, x_ts)
+```
+
+
+## Polynomial Regression (David )
 ```{r}
 poly_model <- lm(df_tr1$Price~polym(AvgIncome , AvgHouseAge , AvgNumRooms , AreaPopulation,degree=3,raw=TRUE),data=df_tr1)
 
 rmse_r2_rss(df_tr$Price,predict(poly_model,df_tr),df_tr)
 rmse_r2_rss(df_ts$Price,predict(poly_model,df_ts),df_ts)
 
+```
 
+
+```{r}
 # CV 
 set.seed(1)
 train.control <- trainControl(method = "repeatedcv", 
