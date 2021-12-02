@@ -289,15 +289,7 @@ rmse_r2_rss(y_ts,predictions,x_ts)
 
 ```
 
-#train
-df_tr <- df3[dt,-7] #remove state
-x_tr <- data.matrix(df_tr[,c(-6,-7)])
-y_tr <-df_tr[,6]
 
-#test
-df_ts <-  df3[-dt,-7]
-x_ts <-data.matrix(df_ts[,c(-6,-7)])
-y_ts <-df_ts[,6]
 
 ##PCR (David )
 ```{r}
