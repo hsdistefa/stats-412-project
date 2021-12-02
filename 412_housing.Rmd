@@ -188,7 +188,6 @@ eigen_decomp$values
 ```
 
 
-
 ```{r lm}
 # Linear Model
 lm_housing <- lm(Price ~ AvgIncome + AvgHouseAge + AvgNumRooms + AvgNumBedrooms + AreaPopulation, data=df_tr)
@@ -226,14 +225,6 @@ rmse_r2_rss(df_ts1$Price,predict(lm_housing2,df_ts1),df_ts1)
 
 ```
 
-```{r}
-# AIC
-#AIC
-df_aic<-step(lm_housing,trace = T)
-df_aic$coefficients
-rmse_r2_rss(df_tr1$Price,predict(df_aic,df_tr1),df_tr1)
-rmse_r2_rss(df_ts1$Price,predict(df_aic,df_ts1),df_ts1)
-```
 
 ##Ridge (Yuxiu)
 ```{r}
