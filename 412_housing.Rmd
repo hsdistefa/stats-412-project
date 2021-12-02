@@ -14,6 +14,7 @@ library(glmnet)
 library(car)
 library(MASS)
 library(caret) 
+library(ggcorrplot)
 # rmse function 
 rmse <- function(y_hat, y){round(sqrt(mean((y_hat - y)^2)),3)}
 
@@ -84,6 +85,7 @@ iqr_price<-IQR(df1$Price)
 df2 = subset(df1, Price>=quantile(df1$Price, 0.25)-1.5*iqr_price & Price<=quantile(df1$Price, 0.75)+1.5*iqr_price )
 summary(df2)
 boxplot(df2$Price)
+
 ```
 
 Since Price is our response variable, we start with it first by using 1.5 * IQR method to remove outliers
@@ -106,17 +108,18 @@ For the rest of the variables, even they have outliers bases on IQR method, but 
 
 subset
 ```{r}
-df4<-df3
-df3 <- subset(df4, state == "CA" | state == "TX"|state == "NY"| state == "FL"| state == "IL" )
-tail(df3,10)
+#df4<-df3
+df4 <- subset(df3, state == "CA" | state == "TX"|state == "NY"| state == "FL"| state == "IL" )
+summary(df4)
 ```
 
 #EDA 
 ###Correlation
 ```{r}
-df_corr<-cor(df3[, c(1:5)])
+df_corr<-cor(df4[, c(1:6)])
 df_corr
-corrplot(df_corr, method = "circle")
+#corrplot(df_corr, method = "circle")
+ggcorrplot(df_corr)
 ```
 
 We see AvgNumRooms and AvgNumBedrooms are highly corrected, and by intuition, more rooms would have more bedrooms. Hypothetically, we will remove AvgNumRooms in our models, later will be shown in our analysis. We also see AvgIncome is closely correlated with Price.  
@@ -125,51 +128,59 @@ We see AvgNumRooms and AvgNumBedrooms are highly corrected, and by intuition, mo
 ###Price
 
 ```{r}
-qplot(df3$Price,xlab = 'Price',main = 'Price Hist',col ='red',bins = 30) # price
+qplot(df4$Price,xlab = 'Price',main = 'Price Hist',col ='red',bins = 30) # price
+quantile(df4$Price, 0.75)
 ```
 
 Price 1m -1.5m
 
 ###Avg Area Income
 ```{r}
-qplot(x=df3$AvgIncome,xlab = 'Avg Area Income',bins = 20,col ='red')
-plot(x=df3$AvgIncome,y=df3$Price,xlab = 'Avg Area Income',ylab='Price',main = 'Price v Avg Area Income',col ='red')
-abline(lm(Price~AvgIncome,data = df3),col= "Blue")
+qplot(x=df4$AvgIncome,xlab = 'Avg Area Income',main="Avg Area Income Hist",bins = 20,col ='red')
+plot(x=df4$AvgIncome,y=df4$Price,xlab = 'Avg Area Income',ylab='Price',main = 'Price v Avg Area Income',col ='red')
+abline(lm(Price~AvgIncome,data = df4),col= "Blue")
+quantile(df4$AvgIncome, 0.25)
 ```
 60k-80k
 
 ###Average House Age
 ```{r}
-qplot(df3$AvgHouseAge,xlab = 'Avg House Age',main ='Avg House Age Hist',bins = 9,col ='red')
+qplot(df4$AvgHouseAge,xlab = 'Avg House Age',main ='Avg House Age Hist',bins = 9,col ='red')
 
-plot(x=df3$AvgHouseAge,y=df3$Price,xlab = 'Avg House Age',ylab='Price',main = 'Price v Avg House Age',col ='purple')
-abline(lm(Price~AvgHouseAge,data = df3),col= "Blue")
+plot(x=df4$AvgHouseAge,y=df4$Price,xlab = 'Avg House Age',ylab='Price',main = 'Price v Avg House Age',col ='purple')
+abline(lm(Price~AvgHouseAge,data = df4),col= "Blue")
+quantile(df4$AvgHouseAge, 0.25)
+quantile(df4$AvgHouseAge, 0.75)
 ```
 5-7 years old
 
 ###Average Number of Rooms
 
 ```{r}
-qplot(df1$AvgNumRooms,xlab = 'Avg Num Rooms', main ='Avg Num Rooms Hist',bins = 10,col ='red')
+qplot(df4$AvgNumRooms,xlab = 'Avg Num Rooms', main ='Avg Num Rooms Hist',bins = 10,col ='red')
 
-plot(x=df3$AvgNumRooms,y=df3$Price,xlab = 'Avg Num Rooms',ylab='Price',main = 'Price v Avg Num Rooms',col ='Black')
-abline(lm(Price~AvgNumRooms,data = df3),col= "Blue")
+plot(x=df4$AvgNumRooms,y=df4$Price,xlab = 'Avg Num Rooms',ylab='Price',main = 'Price v Avg Num Rooms',col ='Black')
+abline(lm(Price~AvgNumRooms,data = df4),col= "Blue")
+quantile(df4$AvgNumRooms, 0.25)
+quantile(df4$AvgNumRooms, 0.75)
 ```
 
 ###Average Number of Bedrooms
 ```{r}
-qplot(df1$AvgNumBedrooms,xlab = 'Avg Num Bedrooms',main = 'Avg Num Bedrooms Hist',bins = 7,col ='red')
-plot(x=df3$AvgNumBedrooms,y=df3$Price,xlab = 'Avg Num Bedrooms',ylab='Price',main = 'Price v Avg Num Bedrooms',col ='green')
-abline(lm(Price~AvgNumBedrooms,data = df3),col= "Blue")
+qplot(df4$AvgNumBedrooms,xlab = 'Avg Num Bedrooms',main = 'Avg Num Bedrooms Hist',bins = 7,col ='red')
+plot(x=df4$AvgNumBedrooms,y=df4$Price,xlab = 'Avg Num Bedrooms',ylab='Price',main = 'Price v Avg Num Bedrooms',col ='green')
+abline(lm(Price~AvgNumBedrooms,data = df4),col= "Blue")
+quantile(df4$AvgNumBedrooms, 0.25)
+quantile(df4$AvgNumBedrooms, 0.75)
 ```
 2-5
 
 Area Population
 ```{r}
-qplot(df1$AreaPopulation,xlab = 'Area Population',bins = 20,col ='red')
+qplot(df4$AreaPopulation,xlab = 'Area Population',bins = 20,col ='red')
 
-plot(x=df3$AreaPopulation,y=df3$Price,xlab = 'Area Population',ylab='Price',main = 'Price v Area Population',col ='red')
-abline(lm(Price~AreaPopulation,data = df3),col= "Blue")
+plot(x=df4$AreaPopulation,y=df4$Price,xlab = 'Area Population',ylab='Price',main = 'Price v Area Population',col ='red')
+abline(lm(Price~AreaPopulation,data = df4),col= "Blue")
 ```
 30k-45k
 
@@ -179,15 +190,15 @@ abline(lm(Price~AreaPopulation,data = df3),col= "Blue")
 ```{r}
 set.seed(1)
 
-dt = sort(sample(nrow(df3), nrow(df3)*.7))
+dt = sort(sample(nrow(df4), nrow(df4)*.7))
 
 #train
-df_tr <- df3[dt,-7] #remove state
+df_tr <- df4[dt,-7] #remove state
 x_tr <- data.matrix(df_tr[,c(-6,-7)])
 y_tr <-df_tr[,6]
 
 #test
-df_ts <-  df3[-dt,-7]
+df_ts <-  df4[-dt,-7]
 x_ts <-data.matrix(df_ts[,c(-6,-7)])
 y_ts <-df_ts[,6]
 
@@ -198,7 +209,7 @@ y_ts <-df_ts[,6]
 
 ```{r collinearity}
 # eigenvalue method
-numeric_feature <- df3[, c(1:5)]
+numeric_feature <- df4[, c(1:5)]
 
 X <- as.matrix(numeric_feature)
 XtX <- t(X) %*% X
@@ -286,7 +297,7 @@ predictions<- predict(ridge_housing, s = min_lambda_ridcv, newx = x_ts)
 rmse_r2_rss(y_ts,predictions,x_ts)
 ```
 
-The adjusted R^2 is about $0.913$, which is close to 1.
+The adjusted R^2 is about $0.917$, which is close to 1.
 
 
 ##Lasso (David)
@@ -301,6 +312,10 @@ min_lambda_lscv
 
 lsmod_cv $lambda.1se
 
+plot(lsmod_cv$glmnet.fit,xvar = "lambda", label = T, main ="lsmod_cv$glmnet.fit")
+plot(lsmod_cv,xvar = "lambda", label = T, main = "lsmod_cv")
+
+
 predictions<- predict(lsmod_cv, s = min_lambda_lscv, newx = x_tr)
 rmse_r2_rss(y_tr,predictions,x_tr)
 
@@ -311,7 +326,7 @@ rmse_r2_rss(y_ts,predictions,x_ts)
 
 
 
-##PCR (David )
+##PCR (David)
 ```{r}
 
 library(pls)
@@ -334,15 +349,46 @@ rmse_r2_rss(y_tr, predictions, x_tr)
 
 predictions<- predict(pcrmod_cv, df_ts, ncomp = min1)
 rmse_r2_rss(y_ts, predictions, x_ts)
+
+
+
+print("---------------------")
+
+pcrmod_cv2 <- pcr(Price ~ AvgIncome + AvgHouseAge + AvgNumRooms + AreaPopulation, data=df_tr,validation = "CV", scale = TRUE, ncomp =3,segments = 10)
+summary(pcrmod_cv2)
+
+pcrmse_2_cv2 <- RMSEP(pcrmod_cv2, estimate="CV")
+min1<-which.min(pcrmse_2_cv2$val)-1 # -1 for intercept
+min1
+ 
+predictions<- predict(pcrmod_cv2, df_tr, ncomp = min1)
+rmse_r2_rss(y_tr, predictions, x_tr)
+
+predictions<- predict(pcrmod_cv2, df_ts, ncomp = min1)
+rmse_r2_rss(y_ts, predictions, x_ts)
+
+
 ```
 
 
 ## Polynomial Regression (David )
 ```{r}
-poly_model <- lm(df_tr1$Price~polym(AvgIncome , AvgHouseAge , AvgNumRooms , AreaPopulation,degree=3,raw=TRUE),data=df_tr1)
+poly_model1 <- lm(df_tr1$Price~polym(AvgIncome , AvgHouseAge , AvgNumRooms , AreaPopulation,degree=4,raw=TRUE),data=df_tr1)
 
-rmse_r2_rss(df_tr$Price,predict(poly_model,df_tr),df_tr)
-rmse_r2_rss(df_ts$Price,predict(poly_model,df_ts),df_ts)
+rmse_r2_rss(df_tr$Price,predict(poly_model1,df_tr),df_tr)
+rmse_r2_rss(df_ts$Price,predict(poly_model1,df_ts),df_ts)
+
+#############################################################
+poly_model2 <- lm(df_tr1$Price~polym(AvgIncome , AvgHouseAge , AvgNumRooms , AreaPopulation,degree=3,raw=TRUE),data=df_tr1)
+
+rmse_r2_rss(df_tr$Price,predict(poly_model2,df_tr),df_tr)
+rmse_r2_rss(df_ts$Price,predict(poly_model2,df_ts),df_ts)
+#############################################################
+poly_model3 <- lm(df_tr1$Price~polym(AvgIncome , AvgHouseAge , AvgNumRooms , AreaPopulation,degree=2,raw=TRUE),data=df_tr1)
+
+rmse_r2_rss(df_tr$Price,predict(poly_model3,df_tr),df_tr)
+rmse_r2_rss(df_ts$Price,predict(poly_model3,df_ts),df_ts)
+
 
 ```
 
