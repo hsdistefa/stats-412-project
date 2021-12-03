@@ -15,6 +15,7 @@ library(car)
 library(MASS)
 library(caret) 
 library(ggcorrplot)
+library(qpcR)
 # rmse function 
 rmse <- function(y_hat, y){round(sqrt(mean((y_hat - y)^2)),3)}
 
@@ -336,7 +337,7 @@ rmse_r2_rss(y_ts,predictions,x_ts)
 
 
 ##PCR (David)
-```{r}
+```{r,warning =FALSE}
 library(pls)
 set.seed(1)
 
@@ -360,7 +361,7 @@ rmse_r2_rss(y_ts, predictions, x_ts)
 
 
 
-print("---------------------")
+###################################
 
 pcrmod_cv2 <- pcr(Price ~ AvgIncome + AvgHouseAge + AvgNumRooms + AreaPopulation, data=df_tr,validation = "CV", scale = TRUE, ncomp =3,segments = 10)
 summary(pcrmod_cv2)
@@ -376,20 +377,23 @@ predictions<- predict(pcrmod_cv2, df_ts, ncomp = min1)
 rmse_r2_rss(y_ts, predictions, x_ts)
 
 #######################################################
-pcrmod_cv3 <- pcr(Price ~ ., data=df_tr,validation = "CV", scale = TRUE, ncomp =5,segments = 10)
+pcrmod_cv3 <- pcr(Price ~ AvgIncome + AvgHouseAge + AvgNumRooms + AreaPopulation+gdp_ratio, data=df_tr,validation = "CV", scale = TRUE, ncomp =5,segments = 10)
 summary(pcrmod_cv)
 
 
 pcrmse_2_cv3 <- RMSEP(pcrmod_cv3, estimate="CV")
 min1<-which.min(pcrmse_2_cv3$val)-1 # -1 for intercept
 min1
- 
+
 predictions<- predict(pcrmod_cv3, df_tr, ncomp = min1)
 rmse_r2_rss(y_tr, predictions, x_tr)
 
 predictions<- predict(pcrmod_cv3, df_ts, ncomp = min1)
 rmse_r2_rss(y_ts, predictions, x_ts)
 
+round(PRESS(pcrmod_cv)$P.square,3)#4  0.737
+round(PRESS(pcrmod_cv2)$P.square,3)#3 0.649
+round(PRESS(pcrmod_cv3 )$P.square,3)#5 0.799
 ```
 
 
@@ -410,6 +414,7 @@ poly_model3 <- lm(df_tr$Price~polym(AvgIncome , AvgHouseAge , AvgNumRooms , Area
 
 rmse_r2_rss(df_tr$Price,predict(poly_model3,df_tr),df_tr)
 rmse_r2_rss(df_ts$Price,predict(poly_model3,df_ts),df_ts)
+
 
 
 ```
