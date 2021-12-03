@@ -15,6 +15,7 @@ library(car)
 library(MASS)
 library(caret) 
 library(ggcorrplot)
+library(qpcR)
 
 # rmse rsquare rss function 
 rmse_r2_rss <- function(y, predict, df) {
@@ -168,9 +169,8 @@ summary(lm_housing)
 
 # VIF
 car::vif(lm_housing)
-df
-rmse_r2_rss(df_tr$SalePrice,predict(lm_housing,df_tr),df_tr)
 
+rmse_r2_rss(df_tr$SalePrice,predict(lm_housing,df_tr),df_tr)
 rmse_r2_rss(df_ts$SalePrice,predict(lm_housing,df_ts),df_ts)
 ```
 
@@ -259,7 +259,7 @@ rmse_r2_rss(y_tr, predictions, x_tr)
 predictions<- predict(pcrmod_cv2, df_ts, ncomp = min2)
 rmse_r2_rss(y_ts, predictions, x_ts)
 ####
-library(qpcR)
+
 #round(PRESS(pcrmod_cv)$P.square,3) #.988
 #round(PRESS(pcrmod_cv2)$P.square,3) #.983
 
@@ -282,8 +282,21 @@ rmse_r2_rss(df_ts$SalePrice,predict(poly_model3,df_ts),df_ts)
 
 
 ```
+## RF
 ```{r}
+set.seed(421)
+library(randomForest)
+rf <- randomForest(
+  SalePrice ~ .,
+  data=df_tr
+)
 
+pred = predict(rf, newdata=df_tr[,-29])
+rmse_r2_rss(df_tr$SalePrice,pred,df_tr)
+
+pred = predict(rf, newdata=df_ts[,-29])
+rmse_r2_rss(df_ts$SalePrice,pred,df_ts)
+varImpPlot(rf)
 ```
 
 
