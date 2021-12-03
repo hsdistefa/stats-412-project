@@ -337,7 +337,6 @@ rmse_r2_rss(y_ts,predictions,x_ts)
 
 ##PCR (David)
 ```{r}
-
 library(pls)
 set.seed(1)
 
@@ -407,7 +406,7 @@ poly_model2 <- lm(df_tr$Price~polym(AvgIncome , AvgHouseAge , AvgNumRooms , Area
 rmse_r2_rss(df_tr$Price,predict(poly_model2,df_tr),df_tr)
 rmse_r2_rss(df_ts$Price,predict(poly_model2,df_ts),df_ts)
 #############################################################
-poly_model3 <- lm(df_tr$Price~polym(AvgIncome , AvgHouseAge , AvgNumRooms , AreaPopulation,gdp_ratio,degree=2,raw=TRUE),data=df_tr1)
+poly_model3 <- lm(df_tr$Price~polym(AvgIncome , AvgHouseAge , AvgNumRooms , AreaPopulation,gdp_ratio,degree=2,raw=TRUE),data=df_tr)
 
 rmse_r2_rss(df_tr$Price,predict(poly_model3,df_tr),df_tr)
 rmse_r2_rss(df_ts$Price,predict(poly_model3,df_ts),df_ts)
@@ -416,15 +415,19 @@ rmse_r2_rss(df_ts$Price,predict(poly_model3,df_ts),df_ts)
 ```
 
 
+## RF
 ```{r}
-# CV 
 set.seed(1)
-train.control <- trainControl(method = "repeatedcv", 
-                              number = 10, repeats = 3)
-# Train the model
-model_cv <- train(df_tr1$Price~polym(AvgIncome , AvgHouseAge , AvgNumRooms , AreaPopulation,degree=3,raw=TRUE), data=df3, method="lm", trControl = train.control)
+library(randomForest)
+rf <- randomForest(
+  Price ~ .,
+  data=df_tr
+)
 
-# Summarize the results
-print(model_cv)
+pred = predict(rf, newdata=df_tr[,-6])
+rmse_r2_rss(df_tr$Price,pred,df_tr)
+
+pred = predict(rf, newdata=df_ts[,-6])
+rmse_r2_rss(df_ts$Price,pred,df_ts)
 ```
 
